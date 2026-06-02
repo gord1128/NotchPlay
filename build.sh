@@ -16,6 +16,10 @@ rm -rf ./build
 mkdir -p "$BUILD_DIR/Contents/MacOS"
 mkdir -p "$BUILD_DIR/Contents/Resources"
 
+if [ -f "AppIcon.icns" ]; then
+    cp "AppIcon.icns" "$BUILD_DIR/Contents/Resources/AppIcon.icns"
+fi
+
 # 3. Create Info.plist in Build Dir
 cat <<EOF > "$BUILD_DIR/Contents/Info.plist"
 <?xml version="1.0" encoding="UTF-8"?>
