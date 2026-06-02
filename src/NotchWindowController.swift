@@ -129,10 +129,19 @@ class NotchWindowController: NSWindowController {
     
     func screenForNotchClick(_ locationInScreen: NSPoint) -> NSScreen? {
         let notchWidth: CGFloat = 200
-        let notchHeight: CGFloat = 38
         
         for screen in NSScreen.screens {
             let screenFrame = screen.frame
+            
+            // If the screen has no hardware notch AND the menu bar is hidden (e.g. Full Screen mode),
+            // we ignore clicks in this region to prevent interfering with full-screen apps (like browser tabs).
+            if screen.safeAreaInsets.top == 0 && screen.visibleFrame.maxY == screenFrame.maxY {
+                continue
+            }
+            
+            // Use hardware notch height if available, otherwise standard menubar height (24px)
+            let notchHeight: CGFloat = screen.safeAreaInsets.top > 0 ? screen.safeAreaInsets.top : 24
+            
             let notchMinX = screenFrame.midX - (notchWidth / 2)
             let notchMaxX = screenFrame.midX + (notchWidth / 2)
             let notchMinY = screenFrame.maxY - notchHeight
