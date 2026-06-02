@@ -1,12 +1,17 @@
 #!/bin/bash
 set -e
 
-# Create App Bundle Structure
-mkdir -p /Applications/NotchPlay.app/Contents/MacOS
-mkdir -p /Applications/NotchPlay.app/Contents/Resources
+BUILD_DIR="./build/NotchPlay.app"
+APP_DIR="/Applications/NotchPlay.app"
 
-# Create Info.plist
-cat <<EOF > /Applications/NotchPlay.app/Contents/Info.plist
+# 1. Create Local Build Directory Structure
+echo "🧹 Cleaning previous build..."
+rm -rf ./build
+mkdir -p "$BUILD_DIR/Contents/MacOS"
+mkdir -p "$BUILD_DIR/Contents/Resources"
+
+# 2. Create Info.plist in Build Dir
+cat <<EOF > "$BUILD_DIR/Contents/Info.plist"
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -33,20 +38,28 @@ cat <<EOF > /Applications/NotchPlay.app/Contents/Info.plist
 </plist>
 EOF
 
-# Kill running instance
+# 3. Kill running instance if exists
 killall NotchPlay 2>/dev/null || true
 
-# Compile
-echo "Compiling NotchPlay..."
+# 4. Compile into Local Build Dir
+echo "🔨 Compiling NotchPlay into isolated build directory..."
 xcrun swiftc src/App.swift src/NotchView.swift src/NotchWindowController.swift src/SystemMediaManager.swift src/SystemAudioManager.swift src/LyricsManager.swift src/HotkeyRecorderView.swift src/HotkeyHelper.swift src/FuriganaHelper.swift \
-    -o /Applications/NotchPlay.app/Contents/MacOS/NotchPlay \
+    -o "$BUILD_DIR/Contents/MacOS/NotchPlay" \
     -parse-as-library \
     -target arm64-apple-macos13.0
 
-# Sign
-echo "Signing NotchPlay..."
-codesign --force --deep --sign - /Applications/NotchPlay.app
+# 5. Sign the Local Build
+echo "🔐 Signing NotchPlay..."
+codesign --force --deep --sign - "$BUILD_DIR"
 
-# Open
-echo "Launching NotchPlay..."
-open /Applications/NotchPlay.app
+# 6. Check if it is running in CI/Release mode
+if [ "$1" == "--release" ]; then
+    echo "📦 Release build completed at $BUILD_DIR"
+    exit 0
+fi
+
+# 7. For local dev: Copy to /Applications and run
+echo "🚀 Copying to /Applications for local testing..."
+rm -rf "$APP_DIR"
+cp -R "$BUILD_DIR" "$APP_DIR"
+open "$APP_DIR"
