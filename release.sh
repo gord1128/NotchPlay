@@ -61,17 +61,17 @@ git push origin "$TAG_VERSION"
 echo "🔨 3. 릴리즈용으로 앱을 안전하게 빌드합니다..."
 ./build.sh --release
 
-# 6. 앱 압축 (.app -> .zip)
-echo "🗜️ 4. 빌드된 앱을 압축합니다..."
-ZIP_NAME="NotchPlay_${TAG_VERSION}.zip"
-rm -f NotchPlay_v*.zip
-# 빌드 폴더로 이동해서 압축
-cd build && zip -r -q "../$ZIP_NAME" NotchPlay.app
-cd ..
+# 6. 앱 패키징 (.app -> .dmg)
+echo "💽 4. 빌드된 앱을 macOS 표준 디스크 이미지(DMG)로 패키징합니다..."
+DMG_NAME="NotchPlay_${TAG_VERSION}.dmg"
+rm -f NotchPlay_v*.dmg
+
+# hdiutil을 사용하여 build/NotchPlay.app을 DMG로 변환
+hdiutil create -volname "NotchPlay" -srcfolder build/NotchPlay.app -ov -format UDZO "$DMG_NAME"
 
 # 7. GitHub Release 배포 (자동 생성된 Changelog 사용)
 echo "☁️ 5. GitHub Releases에 정식 배포 중..."
-gh release create "$TAG_VERSION" "$ZIP_NAME" -t "NotchPlay Release $TAG_VERSION" -F "$CHANGELOG_FILE"
+gh release create "$TAG_VERSION" "$DMG_NAME" -t "NotchPlay Release $TAG_VERSION" -F "$CHANGELOG_FILE"
 
 # 임시 파일 정리
 rm -f "$CHANGELOG_FILE"
