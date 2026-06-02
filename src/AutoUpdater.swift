@@ -43,17 +43,7 @@ class AutoUpdater {
     }
     
     private static func isNewerVersion(latest: String, current: String) -> Bool {
-        let latestComponents = latest.split(separator: ".").compactMap { Int($0) }
-        let currentComponents = current.split(separator: ".").compactMap { Int($0) }
-        
-        for i in 0..<max(latestComponents.count, currentComponents.count) {
-            let l = i < latestComponents.count ? latestComponents[i] : 0
-            let c = i < currentComponents.count ? currentComponents[i] : 0
-            
-            if l > c { return true }
-            if l < c { return false }
-        }
-        return false
+        return latest.compare(current, options: .numeric) == .orderedDescending
     }
     
     private static func showUpdateAlert(latestVersion: String, currentVersion: String) {

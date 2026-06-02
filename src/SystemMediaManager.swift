@@ -31,6 +31,7 @@ class SystemMediaManager: ObservableObject {
     private let appleScriptQueue = DispatchQueue(label: "com.antigravity.notchplay.applescript")
     
     // Cache
+    private let artworkLock = NSLock()
     private var lastArtworkUrl: String? = nil
     var activePlayer: String = "None"
     
@@ -290,8 +291,15 @@ class SystemMediaManager: ObservableObject {
                 end tell
                 """
                 let artUrl = self.runAppleScript(artworkScript)
-                if artUrl != self.lastArtworkUrl, let url = URL(string: artUrl) {
+                
+                self.artworkLock.lock()
+                let isNewArt = (artUrl != self.lastArtworkUrl)
+                if isNewArt {
                     self.lastArtworkUrl = artUrl
+                }
+                self.artworkLock.unlock()
+                
+                if isNewArt, let url = URL(string: artUrl) {
                     URLSession.shared.dataTask(with: url) { data, _, _ in
                         if let data = data, let img = NSImage(data: data) {
                             DispatchQueue.main.async { self.artworkImage = img }
@@ -313,9 +321,15 @@ class SystemMediaManager: ObservableObject {
                 return "FAIL"
                 """
                 let trackId = self.runAppleScript(trackIdScript)
-                if trackId != "FAIL" && trackId != self.lastArtworkUrl {
+                
+                self.artworkLock.lock()
+                let isNewTrack = (trackId != "FAIL" && trackId != self.lastArtworkUrl)
+                if isNewTrack {
                     self.lastArtworkUrl = trackId
-                    
+                }
+                self.artworkLock.unlock()
+                
+                if isNewTrack {
                     let uniqueFilename = UUID().uuidString + ".png"
                     let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(uniqueFilename)
                     let tempPath = tempURL.path
@@ -325,10 +339,15 @@ class SystemMediaManager: ObservableObject {
                         try
                             set artData to raw data of artwork 1 of current track
                             set outFile to open for access (POSIX file "\(tempPath)") with write permission
-                            set eof outFile to 0
-                            write artData to outFile
-                            close access outFile
-                            return "OK"
+                            try
+                                set eof outFile to 0
+                                write artData to outFile
+                                close access outFile
+                                return "OK"
+                            on error
+                                close access outFile
+                                return "FAIL"
+                            end try
                         on error
                             return "FAIL"
                         end try
