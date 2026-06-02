@@ -50,6 +50,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         windowController = NotchWindowController(rootView: notchView, state: notchState)
         windowController?.showWindow(nil)
         
+        AutoUpdater.checkForUpdates()
+        
         setupMenuBar()
     }
     
