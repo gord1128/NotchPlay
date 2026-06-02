@@ -27,6 +27,9 @@ class SystemMediaManager: ObservableObject {
     
     private var localTimer: AnyCancellable?
     
+    // Dedicated serial queue to prevent NSAppleScript concurrent crashes
+    private let appleScriptQueue = DispatchQueue(label: "com.antigravity.notchplay.applescript")
+    
     // Cache
     private var lastArtworkUrl: String? = nil
     var activePlayer: String = "None"
@@ -346,22 +349,22 @@ class SystemMediaManager: ObservableObject {
     func launchApp(app: SupportedMediaApp) {
         let script = "tell application \"\(app.rawValue)\" to activate"
         DispatchQueue.global(qos: .userInitiated).async {
-            var error: NSDictionary?
-            if let appleScript = NSAppleScript(source: script) {
-                appleScript.executeAndReturnError(&error)
-            }
+            _ = self.runAppleScript(script)
         }
-}
+    }
     
     private func runAppleScript(_ script: String) -> String {
-        var error: NSDictionary?
-        if let appleScript = NSAppleScript(source: script) {
-            let output = appleScript.executeAndReturnError(&error)
-            if let stringValue = output.stringValue {
-                return stringValue
+        var resultString = ""
+        appleScriptQueue.sync {
+            var error: NSDictionary?
+            if let appleScript = NSAppleScript(source: script) {
+                let output = appleScript.executeAndReturnError(&error)
+                if let stringValue = output.stringValue {
+                    resultString = stringValue
+                }
             }
         }
-        return ""
+        return resultString
     }
     
     func playPause() {
