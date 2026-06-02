@@ -15,7 +15,19 @@ fi
 
 CURRENT_VERSION=$(cat "$VERSION_FILE")
 IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
+
+# 버전 10 단위 올림(Rollover) 규칙 절대 엄수
 new_patch=$((patch + 1))
+if [ "$new_patch" -ge 10 ]; then
+    new_patch=0
+    minor=$((minor + 1))
+fi
+
+if [ "$minor" -ge 10 ]; then
+    minor=0
+    major=$((major + 1))
+fi
+
 NEW_VERSION="${major}.${minor}.${new_patch}"
 TAG_VERSION="v$NEW_VERSION"
 PREVIOUS_TAG="v$CURRENT_VERSION"
@@ -37,8 +49,17 @@ fi
 # 3. 릴리즈 노트(Changelog) 자동 생성
 # 이전 태그가 존재하는지 확인 후, 커밋 로그 추출
 CHANGELOG_FILE="changelog_temp.md"
-echo "## 🚀 What's New in $TAG_VERSION" > "$CHANGELOG_FILE"
-echo "" >> "$CHANGELOG_FILE"
+
+# 만약 AI_SUMMARY.md 파일이 존재하면 PM 요약 노트를 삽입
+if [ -f "AI_SUMMARY.md" ]; then
+    cat "AI_SUMMARY.md" > "$CHANGELOG_FILE"
+    echo "" >> "$CHANGELOG_FILE"
+    echo "---" >> "$CHANGELOG_FILE"
+    echo "" >> "$CHANGELOG_FILE"
+else
+    echo "## 🚀 What's New in $TAG_VERSION" > "$CHANGELOG_FILE"
+    echo "" >> "$CHANGELOG_FILE"
+fi
 
 if git rev-parse "$PREVIOUS_TAG" >/dev/null 2>&1; then
     echo "이전 버전($PREVIOUS_TAG) 이후의 변경사항을 추출합니다..."
