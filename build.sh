@@ -48,9 +48,9 @@ xcrun swiftc src/App.swift src/NotchView.swift src/NotchWindowController.swift s
     -parse-as-library \
     -target arm64-apple-macos13.0
 
-# 5. Sign the Local Build
-echo "🔐 Signing NotchPlay..."
-codesign --force --deep --sign - "$BUILD_DIR"
+# 5. Sign the Local Build with a stable Designated Requirement
+echo "🔐 Signing NotchPlay (with stable requirements for Accessibility)..."
+codesign --force --deep --sign - --requirements '=designated => identifier "com.antigravity.notchplay"' "$BUILD_DIR"
 
 # 6. Check if it is running in CI/Release mode
 if [ "$1" == "--release" ]; then
