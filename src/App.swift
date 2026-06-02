@@ -26,15 +26,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         // Ensure AppleEvent permission prompts for Music and Spotify show up over everything
         NSApp.activate(ignoringOtherApps: true)
-        DispatchQueue.global(qos: .background).async {
-            let scriptMusic = NSAppleScript(source: "tell application \"Music\" to get player state")
-            var errMusic: NSDictionary?
-            scriptMusic?.executeAndReturnError(&errMusic)
-            
-            let scriptSpotify = NSAppleScript(source: "tell application \"Spotify\" to get player state")
-            var errSpotify: NSDictionary?
-            scriptSpotify?.executeAndReturnError(&errSpotify)
-        }
+        // Remove forced AppleScript execution to prevent auto-launching Music/Spotify
+        // Permissions will be requested naturally when the user actually opens the respective apps.
         
         // Prevent the app from being automatically terminated or napped by macOS when idle
         ProcessInfo.processInfo.disableAutomaticTermination("NotchPlay background polling")

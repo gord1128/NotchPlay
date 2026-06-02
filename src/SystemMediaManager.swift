@@ -140,39 +140,47 @@ class SystemMediaManager: ObservableObject {
     }
     
     private func fetchMediaData() {
-        DispatchQueue.global(qos: .userInitiated).async {
-            // Check Apple Music
-            let musicCheck = """
-            try
-                with timeout of 1 second
-                    if application "Music" is running then
-                        tell application "Music"
-                            if player state is playing then return "MusicPlaying"
-                            if player state is paused then return "MusicPaused"
-                        end tell
-                    end if
-                end timeout
-            end try
-            return "NoMusic"
-            """
+        DispatchQueue.main.async {
+            let runningApps = NSWorkspace.shared.runningApplications
+            let isMusicRunning = runningApps.contains { $0.bundleIdentifier == "com.apple.Music" }
+            let isSpotifyRunning = runningApps.contains { $0.bundleIdentifier == "com.spotify.client" }
             
-            // Check Spotify
-            let spotifyCheck = """
-            try
-                with timeout of 1 second
-                    if application "Spotify" is running then
-                        tell application "Spotify"
-                            if player state is playing then return "SpotifyPlaying"
-                            if player state is paused then return "SpotifyPaused"
-                        end tell
-                    end if
-                end timeout
-            end try
-            return "NoSpotify"
-            """
-            
-            let musicStatus = self.runAppleScript(musicCheck)
-            let spotifyStatus = self.runAppleScript(spotifyCheck)
+            DispatchQueue.global(qos: .userInitiated).async {
+                var musicStatus = "NoMusic"
+                if isMusicRunning {
+                    let musicCheck = """
+                    try
+                        with timeout of 1 second
+                            if application "Music" is running then
+                                tell application "Music"
+                                    if player state is playing then return "MusicPlaying"
+                                    if player state is paused then return "MusicPaused"
+                                end tell
+                            end if
+                        end timeout
+                    end try
+                    return "NoMusic"
+                    """
+                    musicStatus = self.runAppleScript(musicCheck)
+                }
+                
+                var spotifyStatus = "NoSpotify"
+                if isSpotifyRunning {
+                    let spotifyCheck = """
+                    try
+                        with timeout of 1 second
+                            if application "Spotify" is running then
+                                tell application "Spotify"
+                                    if player state is playing then return "SpotifyPlaying"
+                                    if player state is paused then return "SpotifyPaused"
+                                end tell
+                            end if
+                        end timeout
+                    end try
+                    return "NoSpotify"
+                    """
+                    spotifyStatus = self.runAppleScript(spotifyCheck)
+                }
             
             var targetApp = "None"
             var playing = false
@@ -229,6 +237,10 @@ class SystemMediaManager: ObservableObject {
             }
             
             self.activePlayer = targetApp
+            
+            // Re-verify that targetApp is actually running right now before calling it
+            if targetApp == "Music" && !isMusicRunning { return }
+            if targetApp == "Spotify" && !isSpotifyRunning { return }
             
             let metadataScript = """
             try
@@ -364,6 +376,7 @@ class SystemMediaManager: ObservableObject {
             }
         }
     }
+}
     
     func launchApp(app: SupportedMediaApp) {
         let script = "tell application \"\(app.rawValue)\" to activate"
