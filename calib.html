@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body { font-family: sans-serif; background: #333; color: white; display: flex; flex-direction: column; align-items: center; }
+  .container { position: relative; width: 140px; height: 140px; margin: 20px; outline: 1px solid red; }
+  .bg { width: 100%; height: 100%; object-fit: contain; }
+  .dot { position: absolute; width: 4px; height: 4px; background: red; border-radius: 50%; transform: translate(-50%, -50%); z-index: 10; cursor: move; }
+  .circle { position: absolute; border: 1px solid green; border-radius: 50%; transform: translate(-50%, -50%); z-index: 9; pointer-events: none; }
+  .arm { position: absolute; border: 1px solid blue; transform: translate(-50%, 0); z-index: 9; pointer-events: none; transform-origin: top center; }
+  .coords { font-family: monospace; }
+</style>
+</head>
+<body>
+  <h2>Coordinate Finder</h2>
+  <div style="display: flex;">
+      <div>
+          <h3>Braun</h3>
+          <div class="container" id="c1">
+            <img src="NotchPlay.app/Contents/Resources/turntable_bg_braun.png" class="bg">
+            <div class="dot" id="d1" style="left: 74.7px; top: 69.3px;"></div>
+            <div class="circle" id="circ1" style="left: 74.7px; top: 69.3px; width: 84px; height: 84px;"></div>
+            
+            <div class="dot" id="pivot1" style="left: 125px; top: 73px; background: blue;"></div>
+            <div class="arm" id="arm1" style="left: 125px; top: 73px; width: 110px; height: 110px;"></div>
+          </div>
+          <div class="coords" id="out1"></div>
+          <div class="coords" id="out1p"></div>
+      </div>
+      <div>
+          <h3>Rega</h3>
+          <div class="container" id="c2">
+            <img src="NotchPlay.app/Contents/Resources/turntable_bg_rega.png" class="bg">
+            <div class="dot" id="d2" style="left: 58px; top: 70px;"></div>
+            <div class="circle" id="circ2" style="left: 58px; top: 70px; width: 90px; height: 90px;"></div>
+            
+            <div class="dot" id="pivot2" style="left: 120px; top: 71px; background: blue;"></div>
+            <div class="arm" id="arm2" style="left: 120px; top: 71px; width: 120px; height: 120px;"></div>
+          </div>
+          <div class="coords" id="out2"></div>
+          <div class="coords" id="out2p"></div>
+      </div>
+  </div>
+<script>
+  function setupDrag(dotId, circId, outId) {
+    let dot = document.getElementById(dotId);
+    let circ = document.getElementById(circId);
+    let out = document.getElementById(outId);
+    let isDragging = false;
+    dot.onmousedown = (e) => { isDragging = true; };
+    window.addEventListener('mouseup', () => { isDragging = false; });
+    window.addEventListener('mousemove', (e) => {
+      if(isDragging) {
+        let rect = dot.parentElement.getBoundingClientRect();
+        let x = e.clientX - rect.left;
+        let y = e.clientY - rect.top;
+        dot.style.left = x + 'px';
+        dot.style.top = y + 'px';
+        if(circ) {
+            circ.style.left = x + 'px';
+            circ.style.top = y + 'px';
+        }
+        out.innerText = `x: ${x.toFixed(1)}, y: ${y.toFixed(1)}`;
+      }
+    });
+  }
+  setupDrag('d1', 'circ1', 'out1');
+  setupDrag('d2', 'circ2', 'out2');
+  setupDrag('pivot1', 'arm1', 'out1p');
+  setupDrag('pivot2', 'arm2', 'out2p');
+</script>
+</body>
+</html>
