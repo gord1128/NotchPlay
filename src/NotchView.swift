@@ -90,6 +90,7 @@ struct NotchView: View {
                                             .font(.system(size: 13, weight: .bold, design: .rounded))
                                             .foregroundColor(currentTheme.primaryTextColor)
                                             .lineLimit(1)
+                                            .minimumScaleFactor(0.8)
                                         Text(systemMediaManager.artistName)
                                             .font(.system(size: 11, design: .rounded))
                                             .foregroundColor(currentTheme.secondaryTextColor)
@@ -200,8 +201,14 @@ struct NotchView: View {
                                                 .minimumScaleFactor(0.7)
                                         }
                                     }
-                                    .padding(.horizontal, 10)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(currentTheme == .braunVintage ? Color.black.opacity(0.05) : Color.white.opacity(0.1))
+                                    )
                                     .padding(.top, 4)
+                                    .padding(.horizontal, 10)
                                     .id(systemMediaManager.currentLyric) // Force new view creation for transition
                                     .transition(.opacity.combined(with: .move(edge: .bottom)))
                                 }
@@ -365,90 +372,98 @@ struct NotchView: View {
                             
                             Divider().background(currentTheme.secondaryTextColor.opacity(0.3))
                             
-                            // Launch at Login Toggle
-                            Toggle(isOn: Binding(get: {
-                                launchAtLogin
-                            }, set: { newValue in
-                                launchAtLogin = newValue
-                                do {
-                                    if newValue {
-                                        if SMAppService.mainApp.status == .notRegistered {
-                                            try SMAppService.mainApp.register()
+                            VStack(spacing: 12) {
+                                // Launch at Login Toggle
+                                HStack {
+                                    Text("Launch at Login")
+                                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                                        .foregroundColor(currentTheme.primaryTextColor)
+                                    Spacer()
+                                    Toggle("", isOn: Binding(get: {
+                                        launchAtLogin
+                                    }, set: { newValue in
+                                        launchAtLogin = newValue
+                                        do {
+                                            if newValue {
+                                                if SMAppService.mainApp.status == .notRegistered {
+                                                    try SMAppService.mainApp.register()
+                                                }
+                                            } else {
+                                                try SMAppService.mainApp.unregister()
+                                            }
+                                        } catch {
+                                            print("Failed to change SMAppService: \(error)")
                                         }
-                                    } else {
-                                        try SMAppService.mainApp.unregister()
-                                    }
-                                } catch {
-                                    print("Failed to change SMAppService: \(error)")
+                                    }))
+                                    .labelsHidden()
+                                    .toggleStyle(SwitchToggleStyle(tint: currentTheme.primaryTextColor))
                                 }
-                            })) {
-                                Text("Launch at Login")
-                                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                                    .foregroundColor(currentTheme.primaryTextColor)
-                            }
-                            .toggleStyle(SwitchToggleStyle(tint: currentTheme.primaryTextColor))
-                            .padding(.horizontal, 4)
-                            
-                            // Theme Selector
-                            HStack {
-                                Text("Theme")
-                                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                                    .foregroundColor(currentTheme.primaryTextColor)
-                                Spacer()
+                                .padding(.horizontal, 4)
                                 
-                                Picker("", selection: $currentTheme) {
-                                    ForEach(TurntableTheme.allCases) { theme in
-                                        Text(theme.rawValue)
-                                            .tag(theme)
-                                            .foregroundColor(.gray)
+                                // Theme Selector
+                                HStack {
+                                    Text("Theme")
+                                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                                        .foregroundColor(currentTheme.primaryTextColor)
+                                    Spacer()
+                                    
+                                    Picker("", selection: $currentTheme) {
+                                        ForEach(TurntableTheme.allCases) { theme in
+                                            Text(theme.rawValue)
+                                                .tag(theme)
+                                                .foregroundColor(.gray)
+                                        }
                                     }
+                                    .labelsHidden()
+                                    .frame(width: 100)
+                                    .font(.system(size: 9))
                                 }
-                                .labelsHidden()
-                                .frame(width: 100)
-                                .font(.system(size: 9))
-                            }
-                            
-                            // Hotkey Selector
-                            HStack {
-                                Text("Global Hotkey")
-                                    .font(.system(size: 11, weight: .semibold, design: .rounded))
-                                    .foregroundColor(currentTheme.primaryTextColor)
-                                Spacer()
+                                .padding(.horizontal, 4)
+                                
+                                // Hotkey Selector
+                                HStack {
+                                    Text("Global Hotkey")
+                                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                        .foregroundColor(currentTheme.primaryTextColor)
+                                    Spacer()
+                                    
+                                    Button(action: {
+                                        isRecordingHotkey.toggle()
+                                    }) {
+                                        Text(isRecordingHotkey ? "Recording..." : HotkeyHelper.string(for: UInt16(hotkeyCode), modifiers: NSEvent.ModifierFlags(rawValue: UInt(hotkeyModifiers))))
+                                            .font(.system(size: 10, design: .monospaced))
+                                            .foregroundColor(currentTheme.primaryTextColor)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 3)
+                                            .background(isRecordingHotkey ? currentTheme.progressFillColor.opacity(0.8) : Color.white.opacity(0.1))
+                                            .cornerRadius(4)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                    .background(
+                                        HotkeyRecorderView(isRecording: $isRecordingHotkey)
+                                            .frame(width: 0, height: 0)
+                                            .opacity(0)
+                                    )
+                                }
+                                .padding(.horizontal, 4)
                                 
                                 Button(action: {
-                                    isRecordingHotkey.toggle()
+                                    NSApplication.shared.terminate(nil)
                                 }) {
-                                    Text(isRecordingHotkey ? "Recording..." : HotkeyHelper.string(for: UInt16(hotkeyCode), modifiers: NSEvent.ModifierFlags(rawValue: UInt(hotkeyModifiers))))
-                                        .font(.system(size: 10, design: .monospaced))
-                                        .foregroundColor(currentTheme.primaryTextColor)
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 3)
-                                        .background(isRecordingHotkey ? currentTheme.progressFillColor.opacity(0.8) : Color.white.opacity(0.1))
-                                        .cornerRadius(4)
+                                    HStack {
+                                        Image(systemName: "power")
+                                            .foregroundColor(.red)
+                                            .font(.system(size: 10))
+                                        Text("Quit NotchPlay")
+                                            .font(.system(size: 9, weight: .bold, design: .rounded))
+                                            .foregroundColor(.red)
+                                        Spacer()
+                                    }
                                 }
                                 .buttonStyle(PlainButtonStyle())
-                                .background(
-                                    HotkeyRecorderView(isRecording: $isRecordingHotkey)
-                                        .frame(width: 0, height: 0)
-                                        .opacity(0)
-                                )
+                                .padding(.horizontal, 4)
                             }
-                            .padding(.top, 4)
-                            
-                            Button(action: {
-                                NSApplication.shared.terminate(nil)
-                            }) {
-                                HStack {
-                                    Image(systemName: "power")
-                                        .foregroundColor(.red)
-                                        .font(.system(size: 10))
-                                    Text("Quit NotchPlay")
-                                        .font(.system(size: 9, weight: .bold, design: .rounded))
-                                        .foregroundColor(.red)
-                                    Spacer()
-                                }
-                            }
-                            .buttonStyle(PlainButtonStyle())
+                            .padding(.vertical, 4)
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 12)
