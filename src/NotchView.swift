@@ -3,6 +3,64 @@ import AppKit
 import ServiceManagement
 import Combine
 
+struct LiquidGlassModifier: ViewModifier {
+    var theme: TurntableTheme
+    
+    func body(content: Content) -> some View {
+        content
+            .background(
+                ZStack {
+                    VisualEffectView(material: .popover, blendingMode: .behindWindow, state: .active, appearanceName: theme.visualAppearance)
+                    
+                    // Liquid depth / inner glow
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white.opacity(theme.colorScheme == .dark ? 0.15 : 0.6),
+                                    Color.clear,
+                                    Color.black.opacity(theme.colorScheme == .dark ? 0.4 : 0.05)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .blendMode(.overlay)
+                        
+                    theme.backgroundTint.opacity(0.3)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                // Glossy refracting edges
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white.opacity(0.8),
+                                    Color.white.opacity(0.1),
+                                    Color.white.opacity(0.1),
+                                    Color.white.opacity(0.3)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1.5
+                        )
+                )
+                // Diffuse ambient shadows
+                .shadow(color: Color.black.opacity(0.25), radius: 25, x: 0, y: 15)
+                .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
+            )
+            .environment(\.colorScheme, theme.colorScheme)
+    }
+}
+
+extension View {
+    func liquidGlassBackground(theme: TurntableTheme) -> some View {
+        self.modifier(LiquidGlassModifier(theme: theme))
+    }
+}
+
 enum TurntableTheme: String, CaseIterable, Identifiable {
     case technicsGold = "Technics Gold"
     case braunVintage = "Braun SK4 Vintage"
@@ -13,11 +71,23 @@ enum TurntableTheme: String, CaseIterable, Identifiable {
 
 extension TurntableTheme {
     var primaryTextColor: Color {
-        self == .braunVintage ? Color(white: 0.2) : .white
+        Color.primary
     }
     
     var secondaryTextColor: Color {
-        self == .braunVintage ? Color(white: 0.4) : .gray
+        Color.secondary
+    }
+    
+    var visualAppearance: NSAppearance.Name {
+        self == .braunVintage ? .vibrantLight : .vibrantDark
+    }
+    
+    var colorScheme: ColorScheme {
+        self == .braunVintage ? .light : .dark
+    }
+    
+    var backgroundTint: Color {
+        Color.clear // 애플 HIG 규격을 위해 인위적인 배경 틴트는 제거
     }
     
     var progressTrackColor: Color {
@@ -59,11 +129,11 @@ struct NotchView: View {
             if notchState.showProgressBar {
                 VStack(spacing: 8) {
                     // Main player UI
-                    VStack(spacing: 12) {
+                    VStack(spacing: 8) {
                         // Turntable
                         HStack {
                             Spacer()
-                            if let image = systemMediaManager.artworkImage {
+                            if systemMediaManager.artworkImage != nil {
                                 TurntableView(artworkImage: systemMediaManager.artworkImage, isPlaying: systemMediaManager.isPlaying, theme: currentTheme, onPlayPause: {
                                     systemMediaManager.playPause()
                                 }, onNext: {
@@ -87,58 +157,45 @@ struct NotchView: View {
                                 HStack(alignment: .center, spacing: 6) {
                                     VStack(alignment: .center, spacing: 2) {
                                         Text(systemMediaManager.trackName)
-                                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                                            .font(.system(size: 14, weight: .bold, design: .rounded))
                                             .foregroundColor(currentTheme.primaryTextColor)
                                             .lineLimit(1)
                                             .minimumScaleFactor(0.8)
                                         Text(systemMediaManager.artistName)
-                                            .font(.system(size: 11, design: .rounded))
+                                            .font(.system(size: 11, weight: .medium, design: .rounded))
                                             .foregroundColor(currentTheme.secondaryTextColor)
                                             .lineLimit(1)
                                     }
-                                    
-                                    Button(action: {
-                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                                            showSettings.toggle()
-                                        }
-                                    }) {
-                                        Image(systemName: "gearshape.fill")
-                                            .foregroundColor(showSettings ? currentTheme.primaryTextColor : currentTheme.secondaryTextColor)
-                                            .font(.system(size: 11))
-                                    }
-                                    .buttonStyle(PlainButtonStyle())
+
                                 }
                                 
                                 // Playback controls
-                                HStack(spacing: 20) {
+                                HStack(spacing: 16) {
                                     Button(action: {
                                         systemMediaManager.previousTrack()
                                     }) {
                                         Image(systemName: "backward.fill")
-                                            .font(.system(size: 16))
-                                            .foregroundColor(currentTheme.primaryTextColor)
+                                            .font(.system(size: 14, weight: .medium))
                                     }
-                                    .buttonStyle(PlainButtonStyle())
+                                    .buttonStyle(AppleHIGButtonStyle(size: 32, theme: currentTheme))
                                     
                                     Button(action: {
                                         systemMediaManager.playPause()
                                     }) {
                                         Image(systemName: systemMediaManager.isPlaying ? "pause.fill" : "play.fill")
-                                            .font(.system(size: 24))
-                                            .foregroundColor(currentTheme.primaryTextColor)
+                                            .font(.system(size: 20, weight: .medium))
                                     }
-                                    .buttonStyle(PlainButtonStyle())
+                                    .buttonStyle(AppleHIGButtonStyle(size: 44, theme: currentTheme))
                                     
                                     Button(action: {
                                         systemMediaManager.nextTrack()
                                     }) {
                                         Image(systemName: "forward.fill")
-                                            .font(.system(size: 16))
-                                            .foregroundColor(currentTheme.primaryTextColor)
+                                            .font(.system(size: 14, weight: .medium))
                                     }
-                                    .buttonStyle(PlainButtonStyle())
+                                    .buttonStyle(AppleHIGButtonStyle(size: 32, theme: currentTheme))
                                 }
-                                .padding(.vertical, 2)
+                                .padding(.vertical, 0)
                                 
                                 // Progress bar with time
                                 HStack {
@@ -151,13 +208,13 @@ struct NotchView: View {
                                         ZStack(alignment: .leading) {
                                             Capsule()
                                                 .fill(currentTheme.progressTrackColor)
-                                                .shadow(color: Color.black.opacity(0.5), radius: 1, x: 0, y: 1)
-                                                .clipShape(Capsule())
+                                                .frame(height: 4)
                                             Capsule()
                                                 .fill(currentTheme.progressFillColor)
-                                                .frame(width: max(0, geometry.size.width * CGFloat(systemMediaManager.progress)))
+                                                .frame(width: max(0, geometry.size.width * CGFloat(systemMediaManager.progress)), height: 4)
                                                 .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.7), value: systemMediaManager.progress)
                                         }
+                                        .frame(height: 20)
                                         .contentShape(Rectangle())
                                         .gesture(
                                             DragGesture(minimumDistance: 0)
@@ -173,7 +230,7 @@ struct NotchView: View {
                                                 }
                                         )
                                     }
-                                    .frame(height: 4)
+                                    .frame(height: 20)
                                     
                                     Text(formatTime(systemMediaManager.durationSeconds))
                                         .font(.system(size: 9, design: .monospaced))
@@ -260,29 +317,32 @@ struct NotchView: View {
                                 }
                                 .padding(.top, 10)
                             } else {
-                                HStack(alignment: .center, spacing: 6) {
-                                    Text("No Media Playing")
-                                        .font(.system(size: 10, weight: .bold, design: .rounded))
-                                        .foregroundColor(currentTheme.secondaryTextColor)
-                                        .lineLimit(1)
-                                    Button(action: {
-                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                                            showSettings.toggle()
-                                        }
-                                    }) {
-                                        Image(systemName: "gearshape.fill")
-                                            .foregroundColor(showSettings ? currentTheme.primaryTextColor : currentTheme.secondaryTextColor)
-                                            .font(.system(size: 11))
-                                    }
-                                    .buttonStyle(PlainButtonStyle())
-                                }
+                                Text("No Media Playing")
+                                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                                    .foregroundColor(currentTheme.secondaryTextColor)
+                                    .lineLimit(1)
                             }
                         }
                     }
                     .padding(.horizontal, 12)
-                    .padding(.vertical, 12)
+                    .padding(.vertical, 8)
                     .frame(width: 200)
-                    .background(AppIconBackground(theme: currentTheme))
+                    .liquidGlassBackground(theme: currentTheme)
+                    .overlay(alignment: .topTrailing) {
+                        Button(action: {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                showSettings.toggle()
+                            }
+                        }) {
+                            Image(systemName: "gearshape.fill")
+                                .foregroundColor(showSettings ? currentTheme.primaryTextColor : currentTheme.secondaryTextColor.opacity(0.6))
+                                .font(.system(size: 12))
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .padding(.top, 16)
+                        .padding(.trailing, 16)
+                    }
                     
                     // Settings panel
                     if showSettings {
@@ -296,33 +356,19 @@ struct NotchView: View {
                                     .font(.system(size: 8))
                                     .frame(width: 12)
                                 
-                                GeometryReader { geometry in
-                                    ZStack(alignment: .leading) {
-                                        Capsule()
-                                            .fill(currentTheme.progressTrackColor)
-                                            .shadow(color: Color.black.opacity(0.5), radius: 1, x: 0, y: 1)
-                                            .clipShape(Capsule())
-                                        Capsule()
-                                            .fill(currentTheme.progressFillColor)
-                                            .frame(width: max(0, geometry.size.width * CGFloat(systemMediaManager.appVolume)))
-                                            .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.7), value: systemMediaManager.appVolume)
+                                Slider(value: Binding(
+                                    get: { systemMediaManager.appVolume },
+                                    set: { newValue in
+                                        systemMediaManager.appVolume = newValue
+                                        systemMediaManager.setAppVolume(to: newValue, isFinished: false)
                                     }
-                                    .contentShape(Rectangle())
-                                    .gesture(
-                                        DragGesture(minimumDistance: 0)
-                                            .onChanged { value in
-                                                systemMediaManager.isDraggingAppVolume = true
-                                                let percent = min(max(0, value.location.x / geometry.size.width), 1)
-                                                systemMediaManager.setAppVolume(to: Double(percent))
-                                            }
-                                            .onEnded { value in
-                                                systemMediaManager.isDraggingAppVolume = false
-                                                let percent = min(max(0, value.location.x / geometry.size.width), 1)
-                                                systemMediaManager.setAppVolume(to: Double(percent), isFinished: true)
-                                            }
-                                    )
-                                }
-                                .frame(height: 4)
+                                ), in: 0...1, onEditingChanged: { editing in
+                                    if !editing {
+                                        systemMediaManager.setAppVolume(to: systemMediaManager.appVolume, isFinished: true)
+                                    }
+                                })
+                                .accentColor(currentTheme.progressFillColor)
+                                .frame(height: 20)
                                 
                                 Image(systemName: "hifispeaker.2.fill")
                                     .foregroundColor(currentTheme.secondaryTextColor)
@@ -337,31 +383,19 @@ struct NotchView: View {
                                         .font(.system(size: 8))
                                         .frame(width: 12)
                                     
-                                    GeometryReader { geometry in
-                                        ZStack(alignment: .leading) {
-                                            Capsule()
-                                                .fill(currentTheme.progressTrackColor)
-                                                .shadow(color: Color.black.opacity(0.5), radius: 1, x: 0, y: 1)
-                                                .clipShape(Capsule())
-                                            Capsule()
-                                                .fill(currentTheme.primaryTextColor)
-                                                .frame(width: max(0, geometry.size.width * CGFloat(systemAudio.volume)))
-                                                .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.7), value: systemAudio.volume)
+                                    Slider(value: Binding(
+                                        get: { systemAudio.volume },
+                                        set: { newValue in
+                                            systemAudio.volume = newValue
+                                            systemAudio.setVolume(to: newValue, isFinished: false)
                                         }
-                                        .contentShape(Rectangle())
-                                        .gesture(
-                                            DragGesture(minimumDistance: 0)
-                                                .onChanged { value in
-                                                    let percent = min(max(0, value.location.x / geometry.size.width), 1)
-                                                    systemAudio.setVolume(to: Double(percent))
-                                                }
-                                                .onEnded { value in
-                                                    let percent = min(max(0, value.location.x / geometry.size.width), 1)
-                                                    systemAudio.setVolume(to: Double(percent), isFinished: true)
-                                                }
-                                        )
-                                    }
-                                    .frame(height: 4)
+                                    ), in: 0...1, onEditingChanged: { editing in
+                                        if !editing {
+                                            systemAudio.setVolume(to: systemAudio.volume, isFinished: true)
+                                        }
+                                    })
+                                    .accentColor(currentTheme.primaryTextColor)
+                                    .frame(height: 20)
                                     
                                     Image(systemName: "speaker.wave.3.fill")
                                         .foregroundColor(currentTheme.secondaryTextColor)
@@ -471,9 +505,9 @@ struct NotchView: View {
                             .padding(.vertical, 4)
                         }
                         .padding(.horizontal, 12)
-                        .padding(.vertical, 12)
+                        .padding(.vertical, 8)
                         .frame(width: 200)
-                        .background(AppIconBackground(theme: currentTheme))
+                        .liquidGlassBackground(theme: currentTheme)
                         .transition(.move(edge: .top).combined(with: .opacity))
                     }
                 }
@@ -507,12 +541,16 @@ struct VisualEffectView: NSViewRepresentable {
     var material: NSVisualEffectView.Material
     var blendingMode: NSVisualEffectView.BlendingMode
     var state: NSVisualEffectView.State = .active
+    var appearanceName: NSAppearance.Name? = nil
 
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
         view.material = material
         view.blendingMode = blendingMode
         view.state = state
+        if let appearanceName = appearanceName {
+            view.appearance = NSAppearance(named: appearanceName)
+        }
         return view
     }
 
@@ -520,6 +558,11 @@ struct VisualEffectView: NSViewRepresentable {
         nsView.material = material
         nsView.blendingMode = blendingMode
         nsView.state = state
+        if let appearanceName = appearanceName {
+            nsView.appearance = NSAppearance(named: appearanceName)
+        } else {
+            nsView.appearance = nil
+        }
     }
 }
 
@@ -602,21 +645,29 @@ struct AppIconBackground: View {
 struct AppleHIGButtonStyle: ButtonStyle {
     var size: CGFloat
     var theme: TurntableTheme
+    @State private var isHovered = false
     
     func makeBody(configuration: Configuration) -> some View {
-        let baseOpacity: Double = theme == .braunVintage ? 0.08 : 0.15
+        let baseOpacity: Double = theme == .braunVintage ? 0.0 : 0.0
+        let hoverOpacity: Double = theme == .braunVintage ? 0.08 : 0.15
         let pressedOpacity: Double = theme == .braunVintage ? 0.15 : 0.3
         let color: Color = theme == .braunVintage ? .black : .white
+        
+        let currentOpacity = configuration.isPressed ? pressedOpacity : (isHovered ? hoverOpacity : baseOpacity)
         
         configuration.label
             .frame(width: size, height: size)
             .background(
                 Circle()
-                    .fill(color.opacity(configuration.isPressed ? pressedOpacity : baseOpacity))
+                    .fill(color.opacity(currentOpacity))
             )
             .foregroundColor(theme.primaryTextColor)
             .scaleEffect(configuration.isPressed ? 0.92 : 1.0)
             .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+            .animation(.easeOut(duration: 0.2), value: isHovered)
+            .onHover { hovering in
+                isHovered = hovering
+            }
     }
 }
 
@@ -740,7 +791,7 @@ struct TurntableView: View {
                         .frame(width: a.armWidth, height: a.armHeight)
                         .shadow(color: .black.opacity(0.8), radius: 4, x: -3, y: 4)
                         .rotationEffect(.degrees(isPlaying ? a.playAngle : a.restAngle), anchor: UnitPoint(x: a.anchorX, y: a.anchorY))
-                        .animation(.interactiveSpring(response: 0.7, dampingFraction: 0.6, blendDuration: 0), value: isPlaying)
+                        .animation(.interactiveSpring(response: 0.35, dampingFraction: 0.7, blendDuration: 0), value: isPlaying)
                         .position(x: a.armX, y: a.armY)
                 }
             },

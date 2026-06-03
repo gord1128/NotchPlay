@@ -6,7 +6,7 @@ APP_BUNDLE="/Applications/NotchPlay.app"
 CONTENTS_DIR="$APP_BUNDLE/Contents"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
 ICON_DIR="NotchPlay.iconset"
-SOURCE_IMAGE="/Users/hyeonm9/.gemini/antigravity/brain/0a012dc9-1ac4-460b-b6a2-5cceddbc6ac7/app_icon_base_1780087790613.png"
+SOURCE_IMAGE="/Users/hyeonm9/.gemini/antigravity/brain/89c6103c-9c92-4a29-be8b-874e5342be5c/liquid_glass_app_icon_1780517207853.png"
 
 mkdir -p "$ICON_DIR"
 

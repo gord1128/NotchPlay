@@ -30,7 +30,7 @@ class NotchState: ObservableObject {
         dismissTimer = Timer.scheduledTimer(withTimeInterval: 8.0, repeats: false) { [weak self] _ in
             DispatchQueue.main.async {
                 guard let self = self, !self.isHovering else { return }
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
                     self.showProgressBar = false
                 }
             }
@@ -247,12 +247,12 @@ class NotchWindowController: NSWindowController {
     
     func toggleNotchViaHotkey() {
         if notchState.showProgressBar {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
                 notchState.showProgressBar = false
             }
         } else {
             positionUnderNotch(for: NSScreen.main)
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
                 notchState.showProgressBar = true
             }
         }
@@ -265,7 +265,7 @@ class NotchWindowController: NSWindowController {
             let windowFrame = window.frame
             if !windowFrame.contains(screenLocation) {
                 DispatchQueue.main.async {
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
                         self.notchState.showProgressBar = false
                     }
                 }
@@ -278,7 +278,7 @@ class NotchWindowController: NSWindowController {
             if let targetScreen = screenForNotchClick(screenLocation) {
                 DispatchQueue.main.async {
                     self.positionUnderNotch(for: targetScreen) // Move to the clicked screen
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
                         self.notchState.showProgressBar = true
                     }
                 }

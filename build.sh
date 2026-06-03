@@ -19,6 +19,10 @@ mkdir -p "$BUILD_DIR/Contents/Resources"
 if [ -f "AppIcon.icns" ]; then
     cp "AppIcon.icns" "$BUILD_DIR/Contents/Resources/AppIcon.icns"
 fi
+if [ -d "assets" ]; then
+    cp assets/*.png "$BUILD_DIR/Contents/Resources/" 2>/dev/null || true
+    cp assets/*.icns "$BUILD_DIR/Contents/Resources/" 2>/dev/null || true
+fi
 
 # 3. Create Info.plist in Build Dir
 cat <<EOF > "$BUILD_DIR/Contents/Info.plist"
