@@ -458,6 +458,11 @@ struct NotchView: View {
                                             .font(.system(size: 9, weight: .bold, design: .rounded))
                                             .foregroundColor(.red)
                                         Spacer()
+                                        if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+                                            Text("v\(version)")
+                                                .font(.system(size: 9, weight: .medium, design: .monospaced))
+                                                .foregroundColor(currentTheme.secondaryTextColor)
+                                        }
                                     }
                                 }
                                 .buttonStyle(PlainButtonStyle())
