@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 import ServiceManagement
 import Combine
+import SceneKit
 
 struct LiquidGlassModifier: ViewModifier {
     var theme: TurntableTheme
@@ -145,6 +146,7 @@ struct NotchView: View {
                                 .clipped()
                             } else {
                                 TurntableView(artworkImage: nil, isPlaying: false, theme: currentTheme)
+                                    .frame(width: 140, height: 140)
                                     .frame(width: 176, height: 100)
                                     .clipped()
                             }
@@ -753,10 +755,20 @@ struct TurntableView: View {
         }
         .frame(width: 140, height: 140)
         .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(LinearGradient(gradient: Gradient(colors: [Color.white.opacity(0.2), Color.clear]), startPoint: .topLeading, endPoint: .bottomTrailing))
+                .blendMode(.screen)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(theme.progressFillColor.opacity(0.1))
+                .blendMode(.overlay)
+        )
+        .overlay(
             ZStack(alignment: .topLeading) {
                 // Spinning Record
                 ZStack {
-                    Circle().fill(Color.black.opacity(0.6)).frame(width: a.shadowSize, height: a.shadowSize).shadow(radius: 3)
+                    Circle().fill(Color.black.opacity(0.4)).frame(width: a.shadowSize, height: a.shadowSize).shadow(color: .black.opacity(0.4), radius: 6, x: 0, y: 4)
                     
                     if let image = artworkImage {
                         Image(nsImage: image)
@@ -773,7 +785,7 @@ struct TurntableView: View {
                         .frame(width: a.recordSize, height: a.recordSize)
                     
                     Circle()
-                        .fill(AngularGradient(gradient: Gradient(colors: [.white.opacity(0.0), .white.opacity(0.25), .white.opacity(0.0), .white.opacity(0.25), .white.opacity(0.0)]), center: .center, startAngle: .degrees(0), endAngle: .degrees(360)))
+                        .fill(AngularGradient(gradient: Gradient(colors: [.white.opacity(0.0), .white.opacity(0.4), .white.opacity(0.0), .white.opacity(0.4), .white.opacity(0.0)]), center: .center, startAngle: .degrees(0), endAngle: .degrees(360)))
                         .frame(width: a.recordSize, height: a.recordSize)
                         .blendMode(.screen)
                     
@@ -789,7 +801,7 @@ struct TurntableView: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: a.armWidth, height: a.armHeight)
-                        .shadow(color: .black.opacity(0.8), radius: 4, x: -3, y: 4)
+                        .shadow(color: .black.opacity(0.4), radius: 8, x: -2, y: 6)
                         .rotationEffect(.degrees(isPlaying ? a.playAngle : a.restAngle), anchor: UnitPoint(x: a.anchorX, y: a.anchorY))
                         .animation(.interactiveSpring(response: 0.35, dampingFraction: 0.7, blendDuration: 0), value: isPlaying)
                         .position(x: a.armX, y: a.armY)

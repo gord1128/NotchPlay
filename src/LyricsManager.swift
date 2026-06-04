@@ -11,7 +11,18 @@ class LyricsManager {
     private var currentTrackName: String = ""
     private var currentArtistName: String = ""
     
-    private var cache: [String: [LyricLine]] = [:]
+    // NSCache wrapper class for Swift Structs
+    private class CacheWrapper {
+        let lines: [LyricLine]
+        init(lines: [LyricLine]) { self.lines = lines }
+    }
+    
+    private let cache: NSCache<NSString, CacheWrapper> = {
+        let cache = NSCache<NSString, CacheWrapper>()
+        cache.countLimit = 100 // Maximum 100 songs
+        return cache
+    }()
+    
     private var fetchWorkItem: DispatchWorkItem?
     
     func fetchLyrics(trackName: String, artistName: String) {
@@ -28,9 +39,9 @@ class LyricsManager {
         
         guard !trackName.isEmpty, !artistName.isEmpty, trackName != "No Track" else { return }
         
-        let cacheKey = "\(trackName) - \(artistName)"
-        if let cached = cache[cacheKey] {
-            self.allLyrics = cached
+        let cacheKey = "\(trackName) - \(artistName)" as NSString
+        if let cached = cache.object(forKey: cacheKey) {
+            self.allLyrics = cached.lines
             return
         }
         
@@ -57,7 +68,7 @@ class LyricsManager {
                    let syncedLyrics = json["syncedLyrics"] as? String {
                     let parsed = self.parseLRC(syncedLyrics)
                     DispatchQueue.main.async {
-                        self.cache[cacheKey] = parsed
+                        self.cache.setObject(CacheWrapper(lines: parsed), forKey: cacheKey)
                         if self.currentTrackName == trackName && self.currentArtistName == artistName {
                             self.allLyrics = parsed
                         }

@@ -57,7 +57,7 @@ killall NotchPlay 2>/dev/null || true
 
 # 5. Compile into Local Build Dir
 echo "🔨 Compiling NotchPlay into isolated build directory..."
-xcrun swiftc src/App.swift src/NotchView.swift src/NotchWindowController.swift src/SystemMediaManager.swift src/SystemAudioManager.swift src/LyricsManager.swift src/HotkeyRecorderView.swift src/HotkeyHelper.swift src/FuriganaHelper.swift src/AutoUpdater.swift \
+xcrun swiftc src/App.swift src/NotchView.swift src/SceneKitTurntableView.swift src/NotchWindowController.swift src/SystemMediaManager.swift src/SystemAudioManager.swift src/LyricsManager.swift src/HotkeyRecorderView.swift src/HotkeyHelper.swift src/FuriganaHelper.swift src/AutoUpdater.swift \
     -o "$BUILD_DIR/Contents/MacOS/NotchPlay" \
     -parse-as-library \
     -target arm64-apple-macos13.0

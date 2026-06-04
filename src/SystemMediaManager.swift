@@ -31,6 +31,11 @@ class SystemMediaManager: ObservableObject {
     private let appleScriptQueue = DispatchQueue(label: "com.antigravity.notchplay.applescript")
     
     // Cache
+    private let artworkCache: NSCache<NSString, NSImage> = {
+        let cache = NSCache<NSString, NSImage>()
+        cache.countLimit = 20 // Keep last 20 artworks in memory
+        return cache
+    }()
     private let artworkLock = NSLock()
     private var lastArtworkUrl: String? = nil
     var activePlayer: String = "None"
@@ -311,12 +316,17 @@ class SystemMediaManager: ObservableObject {
                 }
                 self.artworkLock.unlock()
                 
-                if isNewArt, let url = URL(string: artUrl) {
-                    URLSession.shared.dataTask(with: url) { data, _, _ in
-                        if let data = data, let img = NSImage(data: data) {
-                            DispatchQueue.main.async { self.artworkImage = img }
-                        }
-                    }.resume()
+                if isNewArt {
+                    if let cachedImg = self.artworkCache.object(forKey: artUrl as NSString) {
+                        DispatchQueue.main.async { self.artworkImage = cachedImg }
+                    } else if let url = URL(string: artUrl) {
+                        URLSession.shared.dataTask(with: url) { data, _, _ in
+                            if let data = data, let img = NSImage(data: data) {
+                                self.artworkCache.setObject(img, forKey: artUrl as NSString)
+                                DispatchQueue.main.async { self.artworkImage = img }
+                            }
+                        }.resume()
+                    }
                 }
             } else if targetApp == "Music" {
                 // Music stores artwork as raw data in AppleScript
@@ -342,35 +352,40 @@ class SystemMediaManager: ObservableObject {
                 self.artworkLock.unlock()
                 
                 if isNewTrack {
-                    let uniqueFilename = UUID().uuidString + ".png"
-                    let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(uniqueFilename)
-                    let tempPath = tempURL.path
-                    
-                    let artFetch = """
-                    tell application "Music"
-                        try
-                            set artData to raw data of artwork 1 of current track
-                            set outFile to open for access (POSIX file "\(tempPath)") with write permission
+                    if let cachedImg = self.artworkCache.object(forKey: trackId as NSString) {
+                        DispatchQueue.main.async { self.artworkImage = cachedImg }
+                    } else {
+                        let uniqueFilename = UUID().uuidString + ".png"
+                        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(uniqueFilename)
+                        let tempPath = tempURL.path
+                        
+                        let artFetch = """
+                        tell application "Music"
                             try
-                                set eof outFile to 0
-                                write artData to outFile
-                                close access outFile
-                                return "OK"
+                                set artData to raw data of artwork 1 of current track
+                                set outFile to open for access (POSIX file "\(tempPath)") with write permission
+                                try
+                                    set eof outFile to 0
+                                    write artData to outFile
+                                    close access outFile
+                                    return "OK"
+                                on error
+                                    close access outFile
+                                    return "FAIL"
+                                end try
                             on error
-                                close access outFile
                                 return "FAIL"
                             end try
-                        on error
-                            return "FAIL"
-                        end try
-                    end tell
-                    """
-                    let artStatus = self.runAppleScript(artFetch)
-                    if artStatus == "OK", let img = NSImage(contentsOfFile: tempPath) {
-                        DispatchQueue.main.async { self.artworkImage = img }
-                        try? FileManager.default.removeItem(atPath: tempPath)
-                    } else {
-                        DispatchQueue.main.async { self.artworkImage = nil }
+                        end tell
+                        """
+                        let artStatus = self.runAppleScript(artFetch)
+                        if artStatus == "OK", let img = NSImage(contentsOfFile: tempPath) {
+                            self.artworkCache.setObject(img, forKey: trackId as NSString)
+                            DispatchQueue.main.async { self.artworkImage = img }
+                            try? FileManager.default.removeItem(atPath: tempPath)
+                        } else {
+                            DispatchQueue.main.async { self.artworkImage = nil }
+                        }
                     }
                 }
             }
